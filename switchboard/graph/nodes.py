@@ -46,12 +46,35 @@ def _err(state: CallState, tool: str, res: tools.ToolResult) -> dict[str, Any]:
 # --------------------------------------------------------------------------
 # ingest — every turn passes through here first
 
+#: Short ways of saying "no, nothing else". Checked literally rather than with a model
+#: call: this runs on every turn of a finished call and must be instant and predictable.
+_DECLINES = {"no", "nope", "no thanks", "no thank you", "nothing", "that's all",
+             "thats all", "that is all", "all good", "im good", "i'm good", "bye",
+             "goodbye", "nothing else", "no that's it", "no thats it"}
+
+
 def ingest(state: CallState) -> dict[str, Any]:
     """Record what was heard, and decide whether we actually heard it."""
     text = (state.get("utterance") or "").strip()
     conf = float(state.get("asr_confidence", 1.0))
     out: dict[str, Any] = {"turn": state.get("turn", 0) + 1,
                            "transcript": [{"role": "caller", "text": text}]}
+
+    # The call is finished but the caller is still talking. Replaying the closing line
+    # forever - which is what happened on the first real call - is the worst possible
+    # answer: the agent invites more ("anything else?") and then cannot hear it.
+    if state.get("ended") and text:
+        if text.lower().strip(" .!?") in _DECLINES:
+            out.update(stage="closed", ended=True,
+                       reply="Thanks for calling. Goodbye.")
+            return out
+        # Anything substantive starts a fresh request inside the same call. Identity
+        # already established is kept; everything about the previous issue is dropped
+        # so the new one cannot inherit its ticket or its runbook.
+        out.update(stage="intake", ended=False, issue="", triage={}, runbook_id="",
+                   ticket_id="", approval_id="", pending_confirm="",
+                   handoff_reason="", outcome="", reply="")
+        return out
 
     if conf < ASR_MIN_CONFIDENCE or not text:
         unclear = state.get("unclear_turns", 0) + 1
@@ -102,7 +125,10 @@ def intake(state: CallState) -> dict[str, Any]:
     out: dict[str, Any] = {"employee_id": emp, "issue": issue}
 
     if emp and issue:
-        out["stage"] = "verify"
+        # Stage advances only after the directory confirms this id exists. Setting it
+        # before the lookup meant an unknown id still moved the call to `verify`, which
+        # then tried to check an answer against nobody, failed, and escalated - the
+        # caller was never asked for their id again.
         res = tools.call("directory.lookup", employee_id=emp)
         if not res.ok:
             out.update(_err(state, "directory.lookup", res))
@@ -119,6 +145,17 @@ def intake(state: CallState) -> dict[str, Any]:
             return out
         emp_rec = res.value
         out["employee_name"] = emp_rec["name"]
+
+        # Identity is proven once per call, not once per issue. A caller who was
+        # verified, got one thing fixed and then raised a second problem must not be
+        # interrogated again - the first real call did exactly that, and it reads as
+        # the agent having forgotten who it was talking to.
+        if state.get("verified"):
+            out["stage"] = "triage"
+            out["reply"] = "Right, let me look into that one."
+            return out
+
+        out["stage"] = "verify"
         out["reply"] = (
             f"Thanks. To confirm it's you — can I take {emp_rec['verify_prompt']}?"
         )
@@ -224,7 +261,16 @@ def resolve(state: CallState) -> dict[str, Any]:
     tri = state.get("triage") or {}
     query = tri.get("summary") or state.get("issue", "")
 
-    res = tools.call("kb.search", query=query)
+    # The caller's own short symptom first: runbook titles are written in symptom
+    # language, and triage's summary is written for a human to read in a ticket. Longer
+    # paraphrase dilutes a proportional term match, so it is the fallback, not the lead.
+    path = tri.get("path", "")
+    attempts = [q for q in (state.get("issue", ""), query) if q]
+    res = None
+    for q in attempts:
+        res = tools.call("kb.search", query=q, path=path)
+        if res.ok:
+            break
     if not res.ok:
         out = _err(state, "kb.search", res)
         # EMPTY is the interesting one: no documented fix. The agent says exactly that
@@ -283,8 +329,14 @@ def escalate(state: CallState) -> dict[str, Any]:
     tri = state.get("triage") or {}
     path = tri.get("path", Path_.UNKNOWN.value)
     summary = tri.get("summary") or state.get("issue") or "Unspecified issue"
+    if not state.get("verified"):
+        # A human picking this up must see immediately that nobody proved who
+        # was calling, because that changes what they may act on.
+        summary = f"[caller not verified] {summary}"
     urgency = tri.get("urgency", "normal")
-    emp = state.get("employee_id", "UNKNOWN")
+    # `.get(key, default)` returns "" when the key exists and is empty, which is
+    # exactly the case here after a failed lookup - hence `or`.
+    emp = state.get("employee_id") or "UNIDENTIFIED"
 
     out: dict[str, Any] = {}
 

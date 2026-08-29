@@ -89,7 +89,17 @@ def _score(query: str, doc: dict[str, Any]) -> float:
     if not qt:
         return 0.0
     dt = _terms(doc["title"] + " " + doc["body"])
-    overlap = len(qt & dt) / len(qt)
+    matched = len(qt & dt)
+
+    # Proportion of the query's content words the document actually contains.
+    #
+    # Coverage-style scoring (matched / min(len, 3)) was tried and reverted: it let
+    # "my colleague needs a new laptop bag" score 58.9 on the charging runbook by
+    # matching the single word "laptop", which overtook genuine hits and inverted the
+    # separation margin. Proportion is stricter and keeps the margin positive; the
+    # cost is that a long paraphrased query dilutes, which `resolve` handles by
+    # searching the caller's own short symptom first.
+    overlap = matched / len(qt)
 
     # No content word in common: this document is not about what was asked, whatever
     # the string similarity says.
@@ -100,14 +110,24 @@ def _score(query: str, doc: dict[str, Any]) -> float:
 
 @tool("kb.search", Risk.NONE,
       "Search the IT runbooks for a documented fix. Pass the caller's symptom in their "
-      "own words. Returns matching runbooks with their steps. If it returns nothing, "
+      "own words, and the triage path to narrow the search. Returns matching runbooks "
+      "with their steps. If it returns nothing, "
       "there is no documented fix - say so and escalate. Never invent steps.")
-def search(query: str, limit: int = 2) -> list[dict[str, Any]]:
+def search(query: str, limit: int = 2, path: str = "") -> list[dict[str, Any]]:
     maybe_fault("kb.search")
     if not (query or "").strip():
         raise ToolError(Failure.BAD_INPUT, "empty query")
 
-    ranked = sorted(((_score(query, d), d) for d in _runbooks()),
+    # When triage has already decided the family, only score inside it. "Caller is
+    # locked out of their account" otherwise ranks the software-ACCESS runbook top,
+    # because "access" is a strong lexical match for a question that is about accounts.
+    pool = _runbooks()
+    if path and path != "unknown":
+        scoped = [d for d in pool if d["path"] == path]
+        if scoped:
+            pool = scoped
+
+    ranked = sorted(((_score(query, d), d) for d in pool),
                     key=lambda p: p[0], reverse=True)
     hits = [{**d, "score": round(s, 1)} for s, d in ranked[:limit] if s >= KB_MIN_SCORE]
 
