@@ -24,3 +24,6 @@ out/
 
 # Test scratch: rebuilt by tests/conftest.py on every run
 data-test/
+
+# Eval scratch: isolated DATA_DIR so an eval run and a live call never share a database
+data-eval/

@@ -38,17 +38,36 @@ def _authed(presented: str | None) -> bool:
 
 
 class TurnIn(BaseModel):
-    call_id: str = Field(min_length=1, max_length=128)
+    # Optional, and deliberately not trusted. A voice model asked to supply a
+    # conversation id will cheerfully invent one - the first real call arrived with
+    # call_id="1" - and every caller would then share a single graph thread, merging
+    # one person's verified identity into another's call. The id is taken from the
+    # platform-injected header instead; this field is only a local-testing fallback.
+    call_id: str = Field(default="", max_length=128)
     utterance: str = Field(default="", max_length=2000)
     asr_confidence: float = Field(default=1.0, ge=0.0, le=1.0)
 
 
 @app.post("/voice/turn")
-def voice_turn(body: TurnIn, x_switchboard_secret: str | None = Header(None)) -> Any:
+def voice_turn(body: TurnIn,
+               x_switchboard_secret: str | None = Header(None),
+               x_conversation_id: str | None = Header(None)) -> Any:
     """One caller utterance in, one line to speak out."""
     if not _authed(x_switchboard_secret):
         raise HTTPException(401, "bad or missing secret")
-    out = turn(body.call_id, body.utterance, body.asr_confidence)
+
+    call_id = (x_conversation_id or "").strip() or body.call_id.strip()
+    if not call_id:
+        raise HTTPException(400, "no conversation id: expected the X-Conversation-Id "
+                                 "header (set by the platform) or call_id in the body")
+    # A model-invented id like "1" or "12345" is a collision waiting to happen. Anything
+    # that short cannot be a real conversation id, so refuse rather than silently share
+    # a thread between callers.
+    if not x_conversation_id and len(call_id) < 6:
+        raise HTTPException(400, f"call_id {call_id!r} looks invented, not a real "
+                                 "conversation id")
+
+    out = turn(call_id, body.utterance, body.asr_confidence)
     # Only what the voice layer needs. Ticket ids and approval ids are included because
     # the agent reads them aloud; internal state is not.
     return {

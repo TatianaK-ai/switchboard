@@ -56,18 +56,18 @@ def build_config(base_url: str) -> dict:
         "api_schema": {
             "url": f"{base_url}/voice/turn",
             "method": "POST",
-            "request_headers": {"X-Switchboard-Secret": SECRET},
+            "request_headers": {
+                "X-Switchboard-Secret": SECRET,
+                # Injected by ElevenLabs, not written by the model. Asking the voice
+                # model for a conversation id gets you an invented one - the first
+                # real call arrived with call_id="1" - and every caller would then
+                # share a single graph thread.
+                "X-Conversation-Id": "{{system__conversation_id}}",
+            },
             "request_body_schema": {
                 "type": "object",
-                "required": ["call_id", "utterance"],
+                "required": ["utterance"],
                 "properties": {
-                    "call_id": {
-                        "type": "string",
-                        "description": ("The conversation id. Must be identical for "
-                                        "every turn of this call - it is the key state "
-                                        "resumes from, and a new value restarts the "
-                                        "call from scratch."),
-                    },
                     "utterance": {
                         "type": "string",
                         "description": ("Exactly what the caller just said. Do not "
