@@ -28,6 +28,21 @@ Without `WEBHOOK_SECRET` the server refuses to bind anything but loopback. An op
 
 ## 2. Create the agent
 
+**One command** — the agent is provisioned from the files in this directory, so the
+prompt and tool schema stay version-controlled rather than living in a dashboard nobody
+can diff:
+
+```bash
+python elevenlabs/provision.py https://your-tunnel.trycloudflare.com
+```
+
+Re-running it updates the existing agent, which is what you want every time the quick
+tunnel hands you a new hostname.
+
+<details><summary>Or configure it by hand in the dashboard</summary>
+
+## 2b. By hand
+
 In the ElevenLabs dashboard: **Conversational AI → Agents → New agent**.
 
 **System prompt** — paste `system-prompt.txt`. It is short on purpose.
@@ -66,3 +81,5 @@ window rather than a checkpoint, and none of it can be run in CI.
 One tool keeps the ElevenLabs layer replaceable. The same graph is driven by
 `python -m switchboard.cli` with no voice at all, which is how every failure case in
 `evals/` is exercised.
+
+</details>
