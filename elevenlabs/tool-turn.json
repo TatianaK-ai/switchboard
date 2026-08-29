@@ -1,0 +1,38 @@
+{
+  "name": "switchboard_turn",
+  "description": "Send the caller's utterance to the Switchboard decision service and receive the exact line to say back. Must be called for every caller turn, including greetings and one-word answers. This tool holds all conversation state, verification status and policy; nothing may be decided without it.",
+  "type": "webhook",
+  "method": "POST",
+  "url": "https://REPLACE-WITH-YOUR-TUNNEL/voice/turn",
+  "headers": {
+    "Content-Type": "application/json",
+    "X-Switchboard-Secret": "REPLACE-WITH-YOUR-WEBHOOK_SECRET"
+  },
+  "request_body_schema": {
+    "type": "object",
+    "required": ["call_id", "utterance"],
+    "properties": {
+      "call_id": {
+        "type": "string",
+        "description": "The ElevenLabs conversation id. Must be identical for every turn of the same call - it is the key the service resumes state from, and a new value restarts the call from scratch."
+      },
+      "utterance": {
+        "type": "string",
+        "description": "Exactly what the caller just said, transcribed. Do not clean it up, correct it, or summarise it."
+      },
+      "asr_confidence": {
+        "type": "number",
+        "description": "Transcription confidence between 0 and 1. Pass the real value: the service uses it to decide when the line is too poor to continue safely, and a hardcoded 1.0 disables that protection."
+      }
+    }
+  },
+  "response_schema": {
+    "type": "object",
+    "properties": {
+      "reply": {"type": "string", "description": "Say this verbatim."},
+      "end_call": {"type": "boolean", "description": "If true, end the call after speaking the reply."},
+      "ticket_id": {"type": "string", "description": "Ticket reference, if one was created. Already included in reply."},
+      "approval_id": {"type": "string", "description": "Approval reference, if one was raised. Already included in reply."}
+    }
+  }
+}
