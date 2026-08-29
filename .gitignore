@@ -21,3 +21,6 @@ out/
 # IDE
 .idea/
 .vscode/
+
+# Test scratch: rebuilt by tests/conftest.py on every run
+data-test/
