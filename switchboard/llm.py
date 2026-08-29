@@ -41,7 +41,13 @@ def review_llm() -> tuple[ChatOpenAI, str, bool]:
     if REVIEW_ON_NEBIUS:
         return (
             ChatOpenAI(api_key=NEBIUS_API_KEY, base_url=NEBIUS_BASE_URL,
-                       model=REVIEW_MODEL, temperature=0, timeout=40, max_retries=2),
+                       model=REVIEW_MODEL, temperature=0,
+                       # A 70B model reading a full call transcript is slow, and
+                       # the longest transcripts are the resolved ones. At 40s the
+                       # timeouts fell almost entirely on successful calls and
+                       # containment read 0% - the failure deleted the evidence it
+                       # was supposed to measure.
+                       timeout=150, max_retries=3),
             f"nebius:{REVIEW_MODEL}",
             True,
         )

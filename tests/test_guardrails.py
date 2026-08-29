@@ -205,3 +205,23 @@ def test_unknown_tool_is_bad_input_not_an_exception():
 def test_wrong_arguments_are_reported_not_raised():
     r = base.call("kb.search", nonsense=1)
     assert not r.ok and r.failure is Failure.BAD_INPUT
+
+
+def test_approval_is_idempotent_within_a_call():
+    """A re-entered node must not ask the operator the same question twice."""
+    from switchboard.memory import store
+    a1 = store.request_approval("call-dup", "E4088", "account.unlock", "locked out")
+    a2 = store.request_approval("call-dup", "E4088", "account.unlock", "locked out")
+    assert a1 == a2
+
+    pending = [a for a in store.pending_approvals() if a["call_id"] == "call-dup"]
+    assert len(pending) == 1
+
+    # A different action in the same call is a different question.
+    a3 = store.request_approval("call-dup", "E4088", "mfa.reset", "new phone")
+    assert a3 != a1
+
+    # Once decided, a fresh request is legitimate - the caller may ring back with more.
+    assert store.decide_approval(a1, False, "admin")
+    a4 = store.request_approval("call-dup", "E4088", "account.unlock", "now verified")
+    assert a4 != a1

@@ -124,8 +124,27 @@ def mark_synced(ticket_id: str) -> None:
 # --- approvals -------------------------------------------------------------
 
 def request_approval(call_id: str, employee_id: str, action: str, detail: str) -> str:
-    aid = "APR" + uuid.uuid4().hex[:8].upper()
+    """Queue a privileged action for a human, at most once per call and action.
+
+    Idempotent deliberately. A graph node can be re-entered - a caller repeats
+    themselves, a turn is retried, the escalate path runs twice in one call - and
+    without this each pass raises another request. The operator then sees the same
+    question twice and has to work out whether they are two real requests or one bug,
+    which is exactly the kind of doubt an approval queue must not create.
+
+    An already-decided request does not block a new one: if an admin denied an unlock
+    and the caller rings back with better information, that is a genuinely new ask.
+    """
     with conn() as c:
+        existing = c.execute(
+            "SELECT id FROM approvals WHERE call_id = ? AND action = ?"
+            " AND status = 'pending'",
+            (call_id, action),
+        ).fetchone()
+        if existing:
+            return existing["id"]
+
+        aid = "APR" + uuid.uuid4().hex[:8].upper()
         c.execute(
             "INSERT INTO approvals (id, call_id, employee_id, action, detail,"
             " created_at) VALUES (?,?,?,?,?,?)",
