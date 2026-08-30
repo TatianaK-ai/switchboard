@@ -289,8 +289,8 @@ def test_console_is_not_fooled_by_a_tunnel_presenting_as_loopback():
             self.client = type("C", (), {"host": host})()
             self.headers = headers
 
-    if not srv.WEBHOOK_SECRET or srv.CONSOLE_OPEN:
-        pytest.skip("no secret configured in this environment")
+    if srv.CONSOLE_OPEN:
+        pytest.skip("console deliberately open in this environment")
 
     srv._require_admin(_Req("127.0.0.1", {}), None)          # a real local browser
 
@@ -331,3 +331,28 @@ def test_escalate_will_not_request_privilege_for_another_employee():
                         "needs_privileged_action": True, "urgency": "normal"}}
     out = escalate(state)
     assert not out.get("approval_id"), "privilege granted across identities"
+
+
+
+def test_the_console_key_is_not_the_key_elevenlabs_holds():
+    """WEBHOOK_SECRET is pasted into a vendor dashboard so their servers can call us.
+    If the same string released privileged actions, the third party the agent asks for
+    permission would hold the credential that grants it."""
+    import switchboard.server as srv
+    from fastapi import HTTPException
+
+    class _Req:
+        def __init__(self, host, headers):
+            self.client = type("C", (), {"host": host})()
+            self.headers = headers
+
+    if srv.CONSOLE_OPEN or not srv.WEBHOOK_SECRET:
+        pytest.skip("needs a webhook secret configured")
+
+    remote = _Req("127.0.0.1", {"x-forwarded-for": "203.0.113.9"})
+    with pytest.raises(HTTPException):
+        srv._require_admin(remote, srv.WEBHOOK_SECRET)
+
+    if srv.CONSOLE_SECRET:
+        assert srv.CONSOLE_SECRET != srv.WEBHOOK_SECRET
+        srv._require_admin(remote, srv.CONSOLE_SECRET)   # the right key still works

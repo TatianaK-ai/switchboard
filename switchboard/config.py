@@ -44,9 +44,16 @@ REVIEW_MODEL = os.getenv("REVIEW_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
 REVIEW_ON_NEBIUS = bool(NEBIUS_API_KEY)
 
 ELEVENLABS_API_KEY = _pick("ELEVENLABS_API_KEY")
-# Shared secret ElevenLabs sends on every tool webhook. Without it the server refuses
-# writes: an open ticket-creation endpoint is a spam vector before it is anything else.
+
+# Two secrets, deliberately not one.
+#
+# WEBHOOK_SECRET is pasted into a third party's dashboard so ElevenLabs can reach
+# /voice/turn. CONSOLE_SECRET releases privileged actions from the operator queue.
+# Using one string for both means the vendor the agent asks for permission holds the
+# credential that grants it, and human-in-the-loop collapses into a value typed into
+# somebody else's web form.
 WEBHOOK_SECRET = _pick("WEBHOOK_SECRET")
+CONSOLE_SECRET = _pick("CONSOLE_SECRET")
 
 
 @dataclass(frozen=True)

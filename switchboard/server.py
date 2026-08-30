@@ -20,7 +20,7 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from .config import WEBHOOK_SECRET
+from .config import CONSOLE_SECRET, WEBHOOK_SECRET
 from .graph.build import snapshot, turn
 from .memory import store
 from .review import containment, review_call
@@ -46,7 +46,7 @@ def _require_admin(request: Request, presented: str | None) -> None:
     employee ids and the decide endpoint can release a privileged action the agent
     correctly refused to take.
     """
-    if CONSOLE_OPEN or not WEBHOOK_SECRET:
+    if CONSOLE_OPEN:
         return
 
     # A tunnel (cloudflared, ngrok) connects to the server over loopback, so a naive
@@ -60,7 +60,15 @@ def _require_admin(request: Request, presented: str | None) -> None:
     client = (request.client.host if request.client else "") or ""
     if client in _LOOPBACK and not forwarded:
         return
-    if not presented or not hmac.compare_digest(presented, WEBHOOK_SECRET):
+    # No console secret set means the console was never meant to be reachable from
+    # anywhere but this machine. Refuse rather than quietly accepting the webhook
+    # secret, which a third party already holds.
+    if not CONSOLE_SECRET:
+        raise HTTPException(
+            401, "this console is only served on the machine it runs on. To reach it "
+                 "remotely, set CONSOLE_SECRET in .env - it must not be the same value "
+                 "as WEBHOOK_SECRET, which ElevenLabs already holds.")
+    if not presented or not hmac.compare_digest(presented, CONSOLE_SECRET):
         raise HTTPException(
             401, "this console is reachable from outside, so it needs the operator "
                  "key. Open it on the machine itself and no key is asked for.")
@@ -192,7 +200,8 @@ def reconcile(request: Request,
 
 @app.get("/health")
 def health() -> Any:
-    return {"ok": True, "auth": bool(WEBHOOK_SECRET)}
+    return {"ok": True, "voice_auth": bool(WEBHOOK_SECRET),
+            "console_auth": bool(CONSOLE_SECRET)}
 
 
 CONSOLE = """<!doctype html><html><head><meta charset="utf-8">
@@ -227,7 +236,7 @@ happens until a person releases it.</p>
   <div class="row"><div>
     <b>Operator key required</b>
     <div class="mut">This console can release privileged actions, so it is not open to
-    whoever finds the URL. Paste the WEBHOOK_SECRET from .env.</div>
+    whoever finds the URL. Paste the CONSOLE_SECRET from .env.</div>
   </div><div style="display:flex;gap:8px">
     <input id="key" type="password" placeholder="operator key"
            style="background:#0f1115;border:1px solid var(--line);color:var(--ink);
