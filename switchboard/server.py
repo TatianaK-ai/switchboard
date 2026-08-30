@@ -29,6 +29,21 @@ from .tools import itsm
 app = FastAPI(title="Switchboard", docs_url="/api/docs")
 
 
+def _require_admin(presented: str | None) -> None:
+    """Guard the operator endpoints.
+
+    The tunnel that lets ElevenLabs reach /voice/turn exposes the whole app, so the
+    approval queue was briefly reachable by anyone who knew the hostname - they could
+    read employee ids and, worse, release a privileged action the agent had correctly
+    refused to take. An approval gate that a stranger can click is not a gate.
+    """
+    if not WEBHOOK_SECRET:
+        # No secret configured means loopback-only binding; nothing is exposed.
+        return
+    if not presented or not hmac.compare_digest(presented, WEBHOOK_SECRET):
+        raise HTTPException(401, "operator console requires the shared secret")
+
+
 def _authed(presented: str | None) -> bool:
     """Constant-time compare. When no secret is configured the server binds loopback
     only (see __main__ below) and accepts unauthenticated calls for local development."""
@@ -99,7 +114,9 @@ def voice_ended(payload: dict, x_switchboard_secret: str | None = Header(None)) 
 
 
 @app.get("/api/calls/{call_id}")
-def call_state(call_id: str) -> Any:
+def call_state(call_id: str,
+               x_switchboard_secret: str | None = Header(None)) -> Any:
+    _require_admin(x_switchboard_secret)
     st = snapshot(call_id)
     if not st:
         raise HTTPException(404, "unknown call")
@@ -109,7 +126,8 @@ def call_state(call_id: str) -> Any:
 # --- operator console ------------------------------------------------------
 
 @app.get("/api/approvals")
-def approvals() -> Any:
+def approvals(x_switchboard_secret: str | None = Header(None)) -> Any:
+    _require_admin(x_switchboard_secret)
     return {"pending": store.pending_approvals()}
 
 
@@ -119,7 +137,9 @@ class Decision(BaseModel):
 
 
 @app.post("/api/approvals/{approval_id}")
-def decide(approval_id: str, body: Decision) -> Any:
+def decide(approval_id: str, body: Decision,
+           x_switchboard_secret: str | None = Header(None)) -> Any:
+    _require_admin(x_switchboard_secret)
     if not store.approval(approval_id):
         raise HTTPException(404, "unknown approval")
     if not store.decide_approval(approval_id, body.approved, body.by):
@@ -129,7 +149,8 @@ def decide(approval_id: str, body: Decision) -> Any:
 
 
 @app.get("/api/reviews")
-def reviews() -> Any:
+def reviews(x_switchboard_secret: str | None = Header(None)) -> Any:
+    _require_admin(x_switchboard_secret)
     import json
     rows = []
     for r in store.reviews(limit=25):
@@ -138,7 +159,8 @@ def reviews() -> Any:
 
 
 @app.post("/api/reconcile")
-def reconcile() -> Any:
+def reconcile(x_switchboard_secret: str | None = Header(None)) -> Any:
+    _require_admin(x_switchboard_secret)
     """Push tickets that were written locally while the ITSM backend was down."""
     return {"pushed": itsm.reconcile()}
 
@@ -176,12 +198,42 @@ button.deny{background:transparent;color:var(--bad);border:1px solid var(--bad)}
 <h1>Switchboard — operator console</h1>
 <p class="sub">Privileged actions the agent requested but may not perform. Nothing here
 happens until a person releases it.</p>
+<div id="lock" class="card" hidden>
+  <div class="row"><div>
+    <b>Operator key required</b>
+    <div class="mut">This console can release privileged actions, so it is not open to
+    whoever finds the URL. Paste the WEBHOOK_SECRET from .env.</div>
+  </div><div style="display:flex;gap:8px">
+    <input id="key" type="password" placeholder="operator key"
+           style="background:#0f1115;border:1px solid var(--line);color:var(--ink);
+                  border-radius:4px;padding:7px 10px;min-width:240px">
+    <button onclick="unlock()">Unlock</button>
+  </div></div>
+</div>
 <h2>Pending approvals</h2><div id="approvals"></div>
 <h2>Call quality <span class="mut">(independent post-call review)</span></h2>
 <div class="metrics" id="metrics"></div><div id="reviews"></div>
 </div><script>
+let KEY = localStorage.getItem('sb_key') || '';
+function ask(){ document.getElementById('lock').hidden = false; }
+function unlock(){
+  KEY = document.getElementById('key').value.trim();
+  localStorage.setItem('sb_key', KEY);
+  document.getElementById('lock').hidden = true;
+  load();
+}
+async function api(path, opts){
+  const o = Object.assign({headers:{}}, opts||{});
+  o.headers['X-Switchboard-Secret'] = KEY;
+  const r = await fetch(path, o);
+  if (r.status === 401){ ask(); return null; }
+  return r.json();
+}
 async function load(){
-  const a = await (await fetch('/api/approvals')).json();
+  if(!KEY){ ask(); return; }
+  const a = await api('/api/approvals');
+  if(!a) return;
+  document.getElementById('lock').hidden = true;
   document.getElementById('approvals').innerHTML = a.pending.length ? a.pending.map(p=>`
     <div class="card"><div class="row"><div>
       <div class="act">${p.action}</div>
@@ -192,7 +244,8 @@ async function load(){
       <button class="deny" onclick="decide('${p.id}',false)">Deny</button>
     </div></div></div>`).join('') : '<p class="empty">Nothing waiting.</p>';
 
-  const r = await (await fetch('/api/reviews')).json();
+  const r = await api('/api/reviews');
+  if(!r) return;
   const m = r.metrics;
   document.getElementById('metrics').innerHTML = m.calls ? `
     <div class="m"><b>${(m.resolved_rate*100).toFixed(0)}%</b><span>Resolved (mix-dependent)</span></div>
@@ -215,7 +268,8 @@ async function load(){
     </div></div></div>`).join('');
 }
 async function decide(id,ok){
-  await fetch('/api/approvals/'+id,{method:'POST',headers:{'Content-Type':'application/json'},
+  await api('/api/approvals/'+id,{method:'POST',
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify({approved:ok,by:'console'})});
   load();
 }
