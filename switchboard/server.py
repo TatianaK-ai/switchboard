@@ -60,6 +60,14 @@ def voice_turn(body: TurnIn,
     if not call_id:
         raise HTTPException(400, "no conversation id: expected the X-Conversation-Id "
                                  "header (set by the platform) or call_id in the body")
+    # An unsubstituted template means the platform did not interpolate the variable,
+    # and every caller would land on one shared thread named "{{...}}" - which is
+    # exactly what happened when this was configured as a request header. Fail loudly:
+    # a silent shared thread leaks one caller's verified identity into another's call.
+    if "{{" in call_id or "}}" in call_id:
+        raise HTTPException(
+            400, f"conversation id {call_id!r} is an unsubstituted template - the "
+                 "platform did not fill it in")
     # A model-invented id like "1" or "12345" is a collision waiting to happen. Anything
     # that short cannot be a real conversation id, so refuse rather than silently share
     # a thread between callers.
@@ -187,7 +195,7 @@ async function load(){
   const r = await (await fetch('/api/reviews')).json();
   const m = r.metrics;
   document.getElementById('metrics').innerHTML = m.calls ? `
-    <div class="m"><b>${(m.contained_and_correct*100).toFixed(0)}%</b><span>Contained &amp; correct</span></div>
+    <div class="m"><b>${(m.resolved_rate*100).toFixed(0)}%</b><span>Resolved (mix-dependent)</span></div>
     <div class="m"><b class="${m.false_containment>0?'flag':'pass'}">${(m.false_containment*100).toFixed(0)}%</b><span>False containment</span></div>
     <div class="m"><b>${(m.process_clean*100).toFixed(0)}%</b><span>Process clean</span></div>
     <div class="m"><b>${m.flagged_for_audit}</b><span>Flagged for audit</span></div>

@@ -119,7 +119,15 @@ def containment() -> dict[str, Any]:
 
     return {
         "calls": total,
-        "contained_and_correct": round(resolved_by_reviewer / total, 3),
+        # Share the reviewer judged actually resolved. NOT a quality score on its own:
+        # it is dominated by which calls you feed it. The eval suite deliberately
+        # over-samples calls that CANNOT be resolved - unknown problems, locked
+        # accounts, dead dependencies - so this number is low by construction and would
+        # be meaningless to compare against a real call mix.
+        "resolved_rate": round(resolved_by_reviewer / total, 3),
+        # The real quality signal, and the one that must stay at zero: the agent said
+        # it fixed something the reviewer cannot see being fixed. Unlike resolved_rate
+        # this does not move with the scenario mix.
         "false_containment": round(false_containment / total, 3),
         "process_clean": round(clean_process / total, 3),
         "flagged_for_audit": sum(int(r["audit_flag"]) for r in rows),

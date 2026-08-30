@@ -56,22 +56,29 @@ def build_config(base_url: str) -> dict:
         "api_schema": {
             "url": f"{base_url}/voice/turn",
             "method": "POST",
-            "request_headers": {
-                "X-Switchboard-Secret": SECRET,
-                # Injected by ElevenLabs, not written by the model. Asking the voice
-                # model for a conversation id gets you an invented one - the first
-                # real call arrived with call_id="1" - and every caller would then
-                # share a single graph thread.
-                "X-Conversation-Id": "{{system__conversation_id}}",
-            },
+            "request_headers": {"X-Switchboard-Secret": SECRET},
             "request_body_schema": {
                 "type": "object",
-                "required": ["utterance"],
+                "required": ["utterance", "call_id"],
                 "properties": {
                     "utterance": {
                         "type": "string",
                         "description": ("Exactly what the caller just said. Do not "
                                         "clean it up, correct it or summarise it."),
+                    },
+                    # Filled by the platform, not by the model. Two earlier attempts
+                    # failed here and both produced thread collisions: asking the LLM
+                    # for it got the invented value "1", and putting the template in a
+                    # request HEADER is not substituted at all - the server received
+                    # the literal string "{{system__conversation_id}}" and every caller
+                    # shared one conversation. A body property declared as a dynamic
+                    # variable is the form that actually interpolates.
+                    # Exactly one of description / dynamic_variable /
+                    # is_system_provided / constant_value may be set - the API rejects
+                    # the combination, which is how the right shape was found.
+                    "call_id": {
+                        "type": "string",
+                        "dynamic_variable": "system__conversation_id",
                     },
                 },
             },
