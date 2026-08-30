@@ -339,15 +339,17 @@ def resolve(state: CallState) -> dict[str, Any]:
 def escalate(state: CallState) -> dict[str, Any]:
     tri = state.get("triage") or {}
     path = tri.get("path", Path_.UNKNOWN.value)
+    urgency = tri.get("urgency", "normal")
+
+    # `.get(key, default)` returns "" when the key exists and is empty, which is
+    # exactly the case here after a failed lookup - hence `or`.
+    emp = state.get("employee_id") or "UNIDENTIFIED"
+
     summary = tri.get("summary") or state.get("issue") or "Unspecified issue"
     if not _verified_as(state, emp):
         # A human picking this up must see immediately that nobody proved who
         # was calling, because that changes what they may act on.
         summary = f"[caller not verified] {summary}"
-    urgency = tri.get("urgency", "normal")
-    # `.get(key, default)` returns "" when the key exists and is empty, which is
-    # exactly the case here after a failed lookup - hence `or`.
-    emp = state.get("employee_id") or "UNIDENTIFIED"
 
     out: dict[str, Any] = {}
 

@@ -297,3 +297,37 @@ def test_console_is_not_fooled_by_a_tunnel_presenting_as_loopback():
     for header in ("x-forwarded-for", "x-forwarded-proto", "cf-connecting-ip"):
         with pytest.raises(HTTPException):
             srv._require_admin(_Req("127.0.0.1", {header: "203.0.113.9"}), None)
+
+
+# --- the escalate node, which no test touched until it broke -------------------
+
+def test_escalate_runs_and_marks_an_unverified_caller():
+    """`escalate` calls only tools, never a model, so it is testable without a key -
+    and it went untested until a refactor left a variable used before assignment,
+    crashing every escalated call. The whole suite passed."""
+    from switchboard.graph.nodes import escalate
+
+    state = {"call_id": "t-esc", "employee_id": "", "verified": False,
+             "issue": "printer is on fire", "triage": {}, "pending_confirm": "ticket",
+             "steps_taken": []}
+    out = escalate(state)
+    assert out["reply"], "a caller must never be left without a reply"
+    assert out.get("ticket_id"), "an escalation must produce a ticket"
+
+    from switchboard.memory import store
+    t = [x for x in store.ticket_history("UNIDENTIFIED") if x["id"] == out["ticket_id"]]
+    assert t, "ticket filed against an empty employee id"
+    assert t[0]["summary"].startswith("[caller not verified]")
+
+
+def test_escalate_will_not_request_privilege_for_another_employee():
+    """Verified as one person, triage asks for a privileged action on another."""
+    from switchboard.graph.nodes import escalate
+
+    state = {"call_id": "t-esc2", "employee_id": "E4088",
+             "verified": True, "verified_id": "E1042",   # proved a DIFFERENT person
+             "issue": "locked out", "pending_confirm": "ticket", "steps_taken": [],
+             "triage": {"path": "account", "summary": "locked out",
+                        "needs_privileged_action": True, "urgency": "normal"}}
+    out = escalate(state)
+    assert not out.get("approval_id"), "privilege granted across identities"
