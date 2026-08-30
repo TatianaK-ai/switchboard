@@ -102,10 +102,24 @@ def test_ticket_degrades_when_backend_is_down(monkeypatch):
 
 # --- identity ----------------------------------------------------------------
 
-def test_verify_refuses_to_be_a_password_oracle():
-    for secret in ("hunter2 is my password", "my otp is 448211"):
-        r = base.call("directory.verify", employee_id="E1042", answer=secret)
-        assert not r.ok and r.failure is Failure.DENIED, secret
+def test_verify_only_compares_the_two_shapes_it_accepts():
+    """The earlier version of this test only fed it strings containing the word
+    "password", so it asserted a keyword blocklist rather than the guarantee - and
+    `hunter2` sailed straight through. The check is now on shape, and this test probes
+    credential-shaped input that carries no give-away word."""
+    for credential in ("hunter2", "Tr0ub4dor", "correcthorse9", "1234567",
+                       "a1b2c3d4", "my otp is 448211"):
+        r = base.call("directory.verify", employee_id="E1042", answer=credential)
+        assert not r.ok and r.failure is Failure.DENIED, (
+            f"{credential!r} was compared instead of refused")
+
+
+def test_verify_leaks_nothing_about_the_account_on_a_failed_check():
+    """A wrong answer must not tell a stranger whether the account is suspended."""
+    r = base.call("directory.verify", employee_id="E5501", answer="0000")
+    assert r.ok and r.value["matched"] is False
+    assert "status" not in r.value, "account status leaked to an unverified caller"
+    assert r.value["name"] is None
 
 
 def test_verify_matches_either_factor_and_rejects_wrong_ones():

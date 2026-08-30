@@ -2,12 +2,18 @@
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 from typing import Any
 
 from ..config import P
 from ..models import Risk
 from .base import Failure, ToolError, maybe_fault, tool
+
+
+#: The only two shapes a verification answer may take.
+_PHONE_SUFFIX = re.compile(r"\d{4}")
+_CITY = re.compile(r"[a-z][a-z .'-]{1,23}")
 
 
 @lru_cache(maxsize=1)
@@ -48,13 +54,24 @@ def verify(employee_id: str, answer: str) -> dict[str, Any]:
     if not given:
         raise ToolError(Failure.BAD_INPUT, "empty answer")
 
-    # Refuse to be used as a password oracle. If something that looks like a secret is
-    # passed in, that is a bug or an attack; either way it must not be compared.
-    if len(given) > 24 or any(w in given for w in ("password", "passcode", "otp")):
-        raise ToolError(Failure.DENIED,
-                        "verification takes a phone suffix or office city, never a secret")
+    # Allow-list the SHAPE of an answer rather than deny-listing words that look secret.
+    # A blocklist of "password"/"otp" only catches an attacker who labels their guess:
+    # `hunter2` and `1234` sailed through it and were compared normally, which is
+    # precisely the oracle this is supposed not to be. Exactly four digits, or a plain
+    # city name. Anything else is refused before any comparison happens.
+    if not (_PHONE_SUFFIX.fullmatch(given) or _CITY.fullmatch(given)):
+        raise ToolError(
+            Failure.DENIED,
+            "verification takes exactly four digits of a desk phone, or an office "
+            "city - nothing else is compared")
 
     v = emp["verify"]
     matched = given == v["last4_phone"].lower() or given == v["office"].lower()
-    return {"matched": matched, "employee_id": emp["id"],
-            "status": emp["status"], "name": emp["name"] if matched else None}
+
+    # Nothing about the account leaks on a failed check. Returning `status` told an
+    # unverified caller whether the account was suspended, which is exactly the sort of
+    # thing a stranger probing the line is trying to learn.
+    if not matched:
+        return {"matched": False, "employee_id": emp["id"], "name": None}
+    return {"matched": True, "employee_id": emp["id"],
+            "status": emp["status"], "name": emp["name"]}
