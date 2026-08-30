@@ -15,8 +15,13 @@ __pycache__/
 data/*.db
 data/checkpoints.db
 
-# Eval output
-out/
+# Eval output. The working directory is ignored, but the two artefacts a reviewer
+# needs are not: the demo video and the evaluation results are part of the submission.
+out/*
+!out/video/
+out/video/*
+!out/video/switchboard-demo.mp4
+!out/eval-results.json
 
 # IDE
 .idea/
@@ -27,3 +32,5 @@ data-test/
 
 # Eval scratch: isolated DATA_DIR so an eval run and a live call never share a database
 data-eval/
+data/*.db-shm
+data/*.db-wal

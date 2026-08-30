@@ -55,13 +55,14 @@ def request(call_id: str, employee_id: str, action: str, reason: str,
     except ToolError:
         pass
 
-    # A suspended account is an HR hold, not a lockout. IT unlocking it would quietly
-    # undo an offboarding decision, so it is refused rather than queued.
-    if emp and emp.get("status") == "suspended" and action in {"account.unlock",
-                                                               "password.reset"}:
+    # A suspended account is an HR hold, not a lockout: acting on it would quietly undo
+    # an offboarding decision. This covers every privileged action, not just the obvious two. Clearing MFA or granting an
+    # application to an offboarded account is the account-takeover primitive; listing
+    # only unlock and password.reset left the two that matter most wide open.
+    if emp and emp.get("status") == "suspended":
         raise ToolError(Failure.DENIED,
-                        "account is suspended, which is an HR hold and not an IT "
-                        "lockout - route to HR Ops, do not request an unlock")
+                        f"account is suspended, which is an HR hold and not an IT "
+                        f"matter - {action} must not be requested; route to HR Ops")
 
     approval_id = store.request_approval(
         call_id=call_id, employee_id=employee_id, action=action,

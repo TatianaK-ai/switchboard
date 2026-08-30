@@ -37,6 +37,11 @@ def _convo(state: CallState, extra: str = "") -> str:
     return "\n".join(lines) or "(no conversation yet)"
 
 
+def _verified_as(state: CallState, employee_id: str) -> bool:
+    """Verification is per person. Proving you are E1042 says nothing about E4088."""
+    return bool(state.get("verified")) and         (state.get("verified_id", "") or "").upper() == (employee_id or "").upper()
+
+
 def _err(state: CallState, tool: str, res: tools.ToolResult) -> dict[str, Any]:
     return {"errors": [{"turn": str(state.get("turn", 0)), "tool": tool,
                         "kind": res.failure.value if res.failure else "unknown",
@@ -124,6 +129,12 @@ def intake(state: CallState) -> dict[str, Any]:
     issue = got.issue or state.get("issue", "")
     out: dict[str, Any] = {"employee_id": emp, "issue": issue}
 
+    # Naming a different employee drops the verified flag. Without this a caller could
+    # verify as themselves and then act as a colleague.
+    if emp and state.get("verified") and not _verified_as(state, emp):
+        out["verified"] = False
+        out["verified_id"] = ""
+
     if emp and issue:
         # Stage advances only after the directory confirms this id exists. Setting it
         # before the lookup meant an unknown id still moved the call to `verify`, which
@@ -150,7 +161,7 @@ def intake(state: CallState) -> dict[str, Any]:
         # verified, got one thing fixed and then raised a second problem must not be
         # interrogated again - the first real call did exactly that, and it reads as
         # the agent having forgotten who it was talking to.
-        if state.get("verified"):
+        if _verified_as(state, emp):
             out["stage"] = "triage"
             out["reply"] = "Right, let me look into that one."
             return out
@@ -207,7 +218,7 @@ def verify(state: CallState) -> dict[str, Any]:
     if v["matched"]:
         hist = tools.call("ticket.history", employee_id=state["employee_id"])
         return {
-            "verified": True, "stage": "triage",
+            "verified": True, "verified_id": v["employee_id"], "stage": "triage",
             "employee_name": v["name"],
             "history": hist.value if hist.ok else [],
             "reply": f"Thanks {v['name'].split()[0]}, that matches. Let me look into it.",
@@ -329,7 +340,7 @@ def escalate(state: CallState) -> dict[str, Any]:
     tri = state.get("triage") or {}
     path = tri.get("path", Path_.UNKNOWN.value)
     summary = tri.get("summary") or state.get("issue") or "Unspecified issue"
-    if not state.get("verified"):
+    if not _verified_as(state, emp):
         # A human picking this up must see immediately that nobody proved who
         # was calling, because that changes what they may act on.
         summary = f"[caller not verified] {summary}"
@@ -342,7 +353,7 @@ def escalate(state: CallState) -> dict[str, Any]:
 
     # Privileged path first: request the action, then still file a ticket so there is a
     # record even if the approval is later denied.
-    if tri.get("needs_privileged_action") and state.get("verified"):
+    if tri.get("needs_privileged_action") and _verified_as(state, emp):
         action = {"account": "account.unlock", "software": "access.grant"}.get(
             path, "account.unlock")
         pres = tools.call("privileged.request", call_id=state["call_id"],

@@ -29,19 +29,41 @@ from .tools import itsm
 app = FastAPI(title="Switchboard", docs_url="/api/docs")
 
 
-def _require_admin(presented: str | None) -> None:
-    """Guard the operator endpoints.
+#: Set CONSOLE_OPEN=1 to drop the check even for remote callers. Deliberately not the
+#: default: the tunnel that lets ElevenLabs reach /voice/turn exposes the whole app, and
+#: an approval gate a stranger can click is not a gate.
+CONSOLE_OPEN = os.getenv("CONSOLE_OPEN", "").strip() in {"1", "true", "yes"}
 
-    The tunnel that lets ElevenLabs reach /voice/turn exposes the whole app, so the
-    approval queue was briefly reachable by anyone who knew the hostname - they could
-    read employee ids and, worse, release a privileged action the agent had correctly
-    refused to take. An approval gate that a stranger can click is not a gate.
+_LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+
+
+def _require_admin(request: Request, presented: str | None) -> None:
+    """Guard the operator endpoints - but only where a guard means something.
+
+    The operator sitting at the machine gets no friction: there is nobody to defend
+    against on loopback, and a key prompt on your own console is pure ceremony. The
+    same page reached through the tunnel is a different matter, because the queue leaks
+    employee ids and the decide endpoint can release a privileged action the agent
+    correctly refused to take.
     """
-    if not WEBHOOK_SECRET:
-        # No secret configured means loopback-only binding; nothing is exposed.
+    if CONSOLE_OPEN or not WEBHOOK_SECRET:
+        return
+
+    # A tunnel (cloudflared, ngrok) connects to the server over loopback, so a naive
+    # "is the peer 127.0.0.1?" exemption hands the console to the whole internet: every
+    # remote request arrives wearing a local address. A proxied request is distinguished
+    # by the forwarding headers the tunnel adds - if any are present, this did not come
+    # from the machine, whatever the socket says.
+    forwarded = any(request.headers.get(h) for h in
+                    ("x-forwarded-for", "x-forwarded-host", "x-forwarded-proto",
+                     "cf-connecting-ip", "forwarded"))
+    client = (request.client.host if request.client else "") or ""
+    if client in _LOOPBACK and not forwarded:
         return
     if not presented or not hmac.compare_digest(presented, WEBHOOK_SECRET):
-        raise HTTPException(401, "operator console requires the shared secret")
+        raise HTTPException(
+            401, "this console is reachable from outside, so it needs the operator "
+                 "key. Open it on the machine itself and no key is asked for.")
 
 
 def _authed(presented: str | None) -> bool:
@@ -114,9 +136,9 @@ def voice_ended(payload: dict, x_switchboard_secret: str | None = Header(None)) 
 
 
 @app.get("/api/calls/{call_id}")
-def call_state(call_id: str,
+def call_state(call_id: str, request: Request,
                x_switchboard_secret: str | None = Header(None)) -> Any:
-    _require_admin(x_switchboard_secret)
+    _require_admin(request, x_switchboard_secret)
     st = snapshot(call_id)
     if not st:
         raise HTTPException(404, "unknown call")
@@ -126,8 +148,9 @@ def call_state(call_id: str,
 # --- operator console ------------------------------------------------------
 
 @app.get("/api/approvals")
-def approvals(x_switchboard_secret: str | None = Header(None)) -> Any:
-    _require_admin(x_switchboard_secret)
+def approvals(request: Request,
+              x_switchboard_secret: str | None = Header(None)) -> Any:
+    _require_admin(request, x_switchboard_secret)
     return {"pending": store.pending_approvals()}
 
 
@@ -137,9 +160,9 @@ class Decision(BaseModel):
 
 
 @app.post("/api/approvals/{approval_id}")
-def decide(approval_id: str, body: Decision,
+def decide(approval_id: str, body: Decision, request: Request,
            x_switchboard_secret: str | None = Header(None)) -> Any:
-    _require_admin(x_switchboard_secret)
+    _require_admin(request, x_switchboard_secret)
     if not store.approval(approval_id):
         raise HTTPException(404, "unknown approval")
     if not store.decide_approval(approval_id, body.approved, body.by):
@@ -149,8 +172,9 @@ def decide(approval_id: str, body: Decision,
 
 
 @app.get("/api/reviews")
-def reviews(x_switchboard_secret: str | None = Header(None)) -> Any:
-    _require_admin(x_switchboard_secret)
+def reviews(request: Request,
+            x_switchboard_secret: str | None = Header(None)) -> Any:
+    _require_admin(request, x_switchboard_secret)
     import json
     rows = []
     for r in store.reviews(limit=25):
@@ -159,8 +183,9 @@ def reviews(x_switchboard_secret: str | None = Header(None)) -> Any:
 
 
 @app.post("/api/reconcile")
-def reconcile(x_switchboard_secret: str | None = Header(None)) -> Any:
-    _require_admin(x_switchboard_secret)
+def reconcile(request: Request,
+              x_switchboard_secret: str | None = Header(None)) -> Any:
+    _require_admin(request, x_switchboard_secret)
     """Push tickets that were written locally while the ITSM backend was down."""
     return {"pushed": itsm.reconcile()}
 
@@ -230,7 +255,6 @@ async function api(path, opts){
   return r.json();
 }
 async function load(){
-  if(!KEY){ ask(); return; }
   const a = await api('/api/approvals');
   if(!a) return;
   document.getElementById('lock').hidden = true;

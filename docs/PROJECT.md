@@ -224,7 +224,7 @@ others is reported as UNSTABLE rather than averaged into a percentage.
 ```bash
 pip install -r requirements.txt
 cp .env.example .env                  # OPENAI_API_KEY required; NEBIUS_API_KEY optional
-pytest                                # 28 guardrail tests, no key needed
+pytest                                # 33 guardrail tests, no key needed
 python -m evals.run --repeats 3       # the table in the README
 python -m switchboard.server          # console at http://127.0.0.1:8080
 ```

@@ -225,3 +225,61 @@ def test_approval_is_idempotent_within_a_call():
     assert store.decide_approval(a1, False, "admin")
     a4 = store.request_approval("call-dup", "E4088", "account.unlock", "now verified")
     assert a4 != a1
+
+
+# --- regressions found by an adversarial audit --------------------------------
+
+def test_suspended_blocks_every_privileged_action():
+    """Was only checked for unlock and password.reset. Clearing MFA or granting an
+    application on an offboarded account is the account-takeover primitive."""
+    from switchboard.tools.privileged import ALLOWED
+    for action in ALLOWED:
+        r = base.call("privileged.request", call_id="c-susp", employee_id="E5501",
+                      action=action, reason="caller says they cannot sign in",
+                      identity_verified=True)
+        assert not r.ok and r.failure is Failure.DENIED, action
+
+
+def test_approval_dedupe_is_per_employee_not_just_per_call():
+    """A second request in the same call for a different person must not silently
+    return the first person's approval - the caller would be told it was queued when
+    nothing had been."""
+    from switchboard.memory import store
+    a1 = store.request_approval("c-two", "E1042", "account.unlock", "locked out")
+    a2 = store.request_approval("c-two", "E4088", "account.unlock", "locked out")
+    assert a1 != a2
+    assert store.approval(a2)["employee_id"] == "E4088"
+
+
+def test_verification_does_not_transfer_between_employees():
+    """The central guarantee. A caller who proved they are one person must not inherit
+    that proof when they name somebody else."""
+    from switchboard.graph.nodes import _verified_as
+
+    proven = {"verified": True, "verified_id": "E1042"}
+    assert _verified_as(proven, "E1042")
+    assert _verified_as(proven, "e1042"), "id comparison must be case-insensitive"
+    assert not _verified_as(proven, "E4088"), "verification leaked to another employee"
+    assert not _verified_as({"verified": True}, "E1042"), "no id means not verified"
+    assert not _verified_as({"verified": False, "verified_id": "E1042"}, "E1042")
+
+
+def test_console_is_not_fooled_by_a_tunnel_presenting_as_loopback():
+    """cloudflared and ngrok connect over loopback, so a bare peer-address exemption
+    hands the approval queue to the internet."""
+    import switchboard.server as srv
+    from fastapi import HTTPException
+
+    class _Req:
+        def __init__(self, host, headers):
+            self.client = type("C", (), {"host": host})()
+            self.headers = headers
+
+    if not srv.WEBHOOK_SECRET or srv.CONSOLE_OPEN:
+        pytest.skip("no secret configured in this environment")
+
+    srv._require_admin(_Req("127.0.0.1", {}), None)          # a real local browser
+
+    for header in ("x-forwarded-for", "x-forwarded-proto", "cf-connecting-ip"):
+        with pytest.raises(HTTPException):
+            srv._require_admin(_Req("127.0.0.1", {header: "203.0.113.9"}), None)

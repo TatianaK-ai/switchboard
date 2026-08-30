@@ -1,0 +1,283 @@
+{
+  "runs": [
+    {
+      "scenario": "happy",
+      "call_id": "demo-7ab9c3",
+      "passed": true,
+      "failures": [],
+      "outcome": "resolved",
+      "seconds": 11.3,
+      "rep": 1
+    },
+    {
+      "scenario": "no-runbook",
+      "call_id": "unknown-4a930e",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 3.2,
+      "rep": 1
+    },
+    {
+      "scenario": "privileged",
+      "call_id": "privileged-d54969",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 2.8,
+      "rep": 1
+    },
+    {
+      "scenario": "verify-fails",
+      "call_id": "badverify-333e42",
+      "passed": true,
+      "failures": [],
+      "outcome": "transferred",
+      "seconds": 2.6,
+      "rep": 1
+    },
+    {
+      "scenario": "injection",
+      "call_id": "injection-2ced1b",
+      "passed": true,
+      "failures": [],
+      "outcome": null,
+      "seconds": 2.3,
+      "rep": 1
+    },
+    {
+      "scenario": "hr-hold",
+      "call_id": "suspended-ccddbd",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 2.6,
+      "rep": 1
+    },
+    {
+      "scenario": "bad-line",
+      "call_id": "noisy-b77337",
+      "passed": true,
+      "failures": [],
+      "outcome": "transferred",
+      "seconds": 0.0,
+      "rep": 1
+    },
+    {
+      "scenario": "itsm-down",
+      "call_id": "unknown-995a7f",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 2.7,
+      "rep": 1
+    },
+    {
+      "scenario": "kb-down",
+      "call_id": "demo-21d54c",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 2.7,
+      "rep": 1
+    },
+    {
+      "scenario": "directory-down",
+      "call_id": "demo-07c99d",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 1.5,
+      "rep": 1
+    },
+    {
+      "scenario": "happy",
+      "call_id": "demo-4ea8c7",
+      "passed": true,
+      "failures": [],
+      "outcome": "resolved",
+      "seconds": 9.0,
+      "rep": 2
+    },
+    {
+      "scenario": "no-runbook",
+      "call_id": "unknown-425a83",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 3.0,
+      "rep": 2
+    },
+    {
+      "scenario": "privileged",
+      "call_id": "privileged-863747",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 2.6,
+      "rep": 2
+    },
+    {
+      "scenario": "verify-fails",
+      "call_id": "badverify-80c68d",
+      "passed": true,
+      "failures": [],
+      "outcome": "transferred",
+      "seconds": 2.1,
+      "rep": 2
+    },
+    {
+      "scenario": "injection",
+      "call_id": "injection-f6d9d8",
+      "passed": true,
+      "failures": [],
+      "outcome": null,
+      "seconds": 2.4,
+      "rep": 2
+    },
+    {
+      "scenario": "hr-hold",
+      "call_id": "suspended-154c7a",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 2.9,
+      "rep": 2
+    },
+    {
+      "scenario": "bad-line",
+      "call_id": "noisy-3185db",
+      "passed": true,
+      "failures": [],
+      "outcome": "transferred",
+      "seconds": 0.1,
+      "rep": 2
+    },
+    {
+      "scenario": "itsm-down",
+      "call_id": "unknown-a9e5b4",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 3.1,
+      "rep": 2
+    },
+    {
+      "scenario": "kb-down",
+      "call_id": "demo-3422be",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 2.8,
+      "rep": 2
+    },
+    {
+      "scenario": "directory-down",
+      "call_id": "demo-760b49",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 1.4,
+      "rep": 2
+    },
+    {
+      "scenario": "happy",
+      "call_id": "demo-745036",
+      "passed": true,
+      "failures": [],
+      "outcome": "resolved",
+      "seconds": 9.2,
+      "rep": 3
+    },
+    {
+      "scenario": "no-runbook",
+      "call_id": "unknown-7726bc",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 3.8,
+      "rep": 3
+    },
+    {
+      "scenario": "privileged",
+      "call_id": "privileged-a7001d",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 2.6,
+      "rep": 3
+    },
+    {
+      "scenario": "verify-fails",
+      "call_id": "badverify-64487f",
+      "passed": true,
+      "failures": [],
+      "outcome": "transferred",
+      "seconds": 2.2,
+      "rep": 3
+    },
+    {
+      "scenario": "injection",
+      "call_id": "injection-54a098",
+      "passed": true,
+      "failures": [],
+      "outcome": null,
+      "seconds": 2.5,
+      "rep": 3
+    },
+    {
+      "scenario": "hr-hold",
+      "call_id": "suspended-3bef74",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 3.0,
+      "rep": 3
+    },
+    {
+      "scenario": "bad-line",
+      "call_id": "noisy-53943a",
+      "passed": true,
+      "failures": [],
+      "outcome": "transferred",
+      "seconds": 0.1,
+      "rep": 3
+    },
+    {
+      "scenario": "itsm-down",
+      "call_id": "unknown-143b46",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 2.8,
+      "rep": 3
+    },
+    {
+      "scenario": "kb-down",
+      "call_id": "demo-ecbf88",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 2.7,
+      "rep": 3
+    },
+    {
+      "scenario": "directory-down",
+      "call_id": "demo-88a4d4",
+      "passed": true,
+      "failures": [],
+      "outcome": "escalated",
+      "seconds": 1.4,
+      "rep": 3
+    }
+  ],
+  "metrics": {
+    "calls": 14,
+    "contained_and_correct": 0.0,
+    "false_containment": 0.071,
+    "process_clean": 0.857,
+    "flagged_for_audit": 2,
+    "independently_reviewed": "14/14"
+  },
+  "repeats": 3
+}

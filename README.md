@@ -91,7 +91,7 @@ verdict, and the containment metric alongside its counterweight.
 ## Test
 
 ```bash
-pytest                       # 28 tests, no API key, no spend, ~3s
+pytest                       # 33 tests, no API key, no spend, ~3s
 python -m evals.run --repeats 3
 ```
 

@@ -136,10 +136,13 @@ def request_approval(call_id: str, employee_id: str, action: str, detail: str) -
     and the caller rings back with better information, that is a genuinely new ask.
     """
     with conn() as c:
+        # Keyed on the employee too. Without it, a second request in the same call for
+        # a DIFFERENT person returned the first person's approval id: the caller was
+        # told it was queued, and nothing had been.
         existing = c.execute(
             "SELECT id FROM approvals WHERE call_id = ? AND action = ?"
-            " AND status = 'pending'",
-            (call_id, action),
+            " AND employee_id = ? AND status = 'pending'",
+            (call_id, action, employee_id),
         ).fetchone()
         if existing:
             return existing["id"]

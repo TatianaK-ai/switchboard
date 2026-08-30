@@ -30,6 +30,11 @@ class CallState(TypedDict, total=False):
     employee_id: str
     employee_name: str
     verified: bool
+    # WHICH employee was proven. `verified` alone is not enough: a caller who proved
+    # they were one person could then name a different employee id and inherit the
+    # verified flag, and every downstream check that asks "is this caller verified"
+    # would say yes about the wrong person.
+    verified_id: str
     verify_attempts: int
     unclear_turns: int
 
