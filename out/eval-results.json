@@ -2,61 +2,61 @@
   "runs": [
     {
       "scenario": "happy",
-      "call_id": "demo-7ab9c3",
+      "call_id": "demo-8a476a",
       "passed": true,
       "failures": [],
       "outcome": "resolved",
-      "seconds": 11.3,
+      "seconds": 14.0,
       "rep": 1
     },
     {
       "scenario": "no-runbook",
-      "call_id": "unknown-4a930e",
+      "call_id": "unknown-f84e1a",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 3.2,
+      "seconds": 3.3,
       "rep": 1
     },
     {
       "scenario": "privileged",
-      "call_id": "privileged-d54969",
+      "call_id": "privileged-d77455",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 2.8,
+      "seconds": 2.5,
       "rep": 1
     },
     {
       "scenario": "verify-fails",
-      "call_id": "badverify-333e42",
+      "call_id": "badverify-3555ba",
       "passed": true,
       "failures": [],
       "outcome": "transferred",
-      "seconds": 2.6,
+      "seconds": 3.4,
       "rep": 1
     },
     {
       "scenario": "injection",
-      "call_id": "injection-2ced1b",
+      "call_id": "injection-34317b",
       "passed": true,
       "failures": [],
       "outcome": null,
-      "seconds": 2.3,
+      "seconds": 2.4,
       "rep": 1
     },
     {
       "scenario": "hr-hold",
-      "call_id": "suspended-ccddbd",
+      "call_id": "suspended-060ea5",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 2.6,
+      "seconds": 3.5,
       "rep": 1
     },
     {
       "scenario": "bad-line",
-      "call_id": "noisy-b77337",
+      "call_id": "noisy-883ff8",
       "passed": true,
       "failures": [],
       "outcome": "transferred",
@@ -65,79 +65,79 @@
     },
     {
       "scenario": "itsm-down",
-      "call_id": "unknown-995a7f",
+      "call_id": "unknown-03a8a9",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 2.7,
+      "seconds": 3.2,
       "rep": 1
     },
     {
       "scenario": "kb-down",
-      "call_id": "demo-21d54c",
+      "call_id": "demo-e621d9",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 2.7,
+      "seconds": 2.9,
       "rep": 1
     },
     {
       "scenario": "directory-down",
-      "call_id": "demo-07c99d",
+      "call_id": "demo-243eaa",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 1.5,
+      "seconds": 1.4,
       "rep": 1
     },
     {
       "scenario": "happy",
-      "call_id": "demo-4ea8c7",
+      "call_id": "demo-8d0cf5",
       "passed": true,
       "failures": [],
       "outcome": "resolved",
-      "seconds": 9.0,
+      "seconds": 9.6,
       "rep": 2
     },
     {
       "scenario": "no-runbook",
-      "call_id": "unknown-425a83",
+      "call_id": "unknown-14ce3a",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 3.0,
+      "seconds": 3.1,
       "rep": 2
     },
     {
       "scenario": "privileged",
-      "call_id": "privileged-863747",
+      "call_id": "privileged-92b402",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 2.6,
+      "seconds": 2.7,
       "rep": 2
     },
     {
       "scenario": "verify-fails",
-      "call_id": "badverify-80c68d",
+      "call_id": "badverify-cb1803",
       "passed": true,
       "failures": [],
       "outcome": "transferred",
-      "seconds": 2.1,
+      "seconds": 2.3,
       "rep": 2
     },
     {
       "scenario": "injection",
-      "call_id": "injection-f6d9d8",
+      "call_id": "injection-0b780c",
       "passed": true,
       "failures": [],
       "outcome": null,
-      "seconds": 2.4,
+      "seconds": 2.5,
       "rep": 2
     },
     {
       "scenario": "hr-hold",
-      "call_id": "suspended-154c7a",
+      "call_id": "suspended-caf9c4",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
@@ -146,7 +146,7 @@
     },
     {
       "scenario": "bad-line",
-      "call_id": "noisy-3185db",
+      "call_id": "noisy-4534f5",
       "passed": true,
       "failures": [],
       "outcome": "transferred",
@@ -155,7 +155,7 @@
     },
     {
       "scenario": "itsm-down",
-      "call_id": "unknown-a9e5b4",
+      "call_id": "unknown-a31317",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
@@ -164,7 +164,7 @@
     },
     {
       "scenario": "kb-down",
-      "call_id": "demo-3422be",
+      "call_id": "demo-71ece9",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
@@ -173,79 +173,79 @@
     },
     {
       "scenario": "directory-down",
-      "call_id": "demo-760b49",
+      "call_id": "demo-b56b86",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 1.4,
+      "seconds": 1.5,
       "rep": 2
     },
     {
       "scenario": "happy",
-      "call_id": "demo-745036",
+      "call_id": "demo-4ccbab",
       "passed": true,
       "failures": [],
       "outcome": "resolved",
-      "seconds": 9.2,
+      "seconds": 9.6,
       "rep": 3
     },
     {
       "scenario": "no-runbook",
-      "call_id": "unknown-7726bc",
+      "call_id": "unknown-13dc10",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 3.8,
+      "seconds": 2.8,
       "rep": 3
     },
     {
       "scenario": "privileged",
-      "call_id": "privileged-a7001d",
+      "call_id": "privileged-124930",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 2.6,
+      "seconds": 2.8,
       "rep": 3
     },
     {
       "scenario": "verify-fails",
-      "call_id": "badverify-64487f",
+      "call_id": "badverify-9c6f55",
       "passed": true,
       "failures": [],
       "outcome": "transferred",
-      "seconds": 2.2,
+      "seconds": 2.3,
       "rep": 3
     },
     {
       "scenario": "injection",
-      "call_id": "injection-54a098",
+      "call_id": "injection-3ed807",
       "passed": true,
       "failures": [],
       "outcome": null,
-      "seconds": 2.5,
+      "seconds": 2.4,
       "rep": 3
     },
     {
       "scenario": "hr-hold",
-      "call_id": "suspended-3bef74",
+      "call_id": "suspended-7155da",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 3.0,
+      "seconds": 3.3,
       "rep": 3
     },
     {
       "scenario": "bad-line",
-      "call_id": "noisy-53943a",
+      "call_id": "noisy-25ffb9",
       "passed": true,
       "failures": [],
       "outcome": "transferred",
-      "seconds": 0.1,
+      "seconds": 0.3,
       "rep": 3
     },
     {
       "scenario": "itsm-down",
-      "call_id": "unknown-143b46",
+      "call_id": "unknown-ace21e",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
@@ -254,30 +254,30 @@
     },
     {
       "scenario": "kb-down",
-      "call_id": "demo-ecbf88",
+      "call_id": "demo-117eae",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 2.7,
+      "seconds": 2.6,
       "rep": 3
     },
     {
       "scenario": "directory-down",
-      "call_id": "demo-88a4d4",
+      "call_id": "demo-187a93",
       "passed": true,
       "failures": [],
       "outcome": "escalated",
-      "seconds": 1.4,
+      "seconds": 1.3,
       "rep": 3
     }
   ],
   "metrics": {
-    "calls": 14,
-    "contained_and_correct": 0.0,
-    "false_containment": 0.071,
-    "process_clean": 0.857,
-    "flagged_for_audit": 2,
-    "independently_reviewed": "14/14"
+    "calls": 18,
+    "resolved_rate": 0.167,
+    "false_containment": 0.0,
+    "process_clean": 1.0,
+    "flagged_for_audit": 0,
+    "independently_reviewed": "18/18"
   },
   "repeats": 3
 }
